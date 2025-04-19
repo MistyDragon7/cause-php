@@ -1,18 +1,19 @@
 <?php
 require_once "vendor/autoload.php";
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-$dotenv->load(); // Load environment variables from .env file
+$dotenv->load();
 
-session_start(); // Start the session
+session_start();
 
-// Database connection
 $host = $_ENV["DB_HOST"];
+$port = $_ENV["DB_PORT"] ?? 3306;
 $dbname = $_ENV["DB_NAME"];
 $user = $_ENV["DB_USER"];
 $pass = $_ENV["DB_PASS"];
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $user, $pass);
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname";
+    $pdo = new PDO($dsn, $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     echo json_encode([

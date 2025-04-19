@@ -9,14 +9,16 @@ if (!file_exists($envPath)) {
     die("Error: The .env file does not exist at the path: $envPath");
 }
 Dotenv\Dotenv::createImmutable(__DIR__ . "/../")->load();
+
 function getDbConnection()
 {
     $host = $_ENV["DB_HOST"] ?? "localhost";
+    $port = $_ENV["DB_PORT"] ?? 3306;
     $username = $_ENV["DB_USERNAME"] ?? "root";
     $password = $_ENV["DB_PASSWORD"] ?? "";
     $database = $_ENV["DB_DATABASE"] ?? "registrations";
-    $conn = new mysqli($host, $username, $password, $database);
-    // Check connection
+
+    $conn = new mysqli($host, $username, $password, $database, $port);
     if ($conn->connect_error) {
         die("Connection failed: " . $conn->connect_error);
     }
@@ -27,10 +29,16 @@ function getDbConnection()
 function setupDatabase()
 {
     $host = $_ENV["DB_HOST"] ?? "localhost";
+    $port = $_ENV["DB_PORT"] ?? 3306;
     $username = $_ENV["DB_USERNAME"] ?? "root";
     $password = $_ENV["DB_PASSWORD"] ?? "";
     $database = $_ENV["DB_DATABASE"] ?? "cause_registration";
-    $conn = new mysqli($host, $username, $password);
+
+    $conn = new mysqli($host, $username, $password, "", $port);
+    if ($conn->connect_error) {
+        die("Connection failed: " . $conn->connect_error);
+    }
+
     $sql = "CREATE DATABASE IF NOT EXISTS $database";
     if ($conn->query($sql) !== true) {
         die("Error creating database: " . $conn->error);
@@ -38,7 +46,6 @@ function setupDatabase()
 
     $conn->select_db($database);
 
-    // Create users table
     $sql = "CREATE TABLE IF NOT EXISTS users (
         id INT(11) AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -60,5 +67,4 @@ function setupDatabase()
 
 // Uncomment this line to set up the database on first run
 setupDatabase();
-
 ?>
