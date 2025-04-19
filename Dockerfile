@@ -1,25 +1,24 @@
-# Use official PHP image as the base
+# Use the official PHP image as the base image
 FROM php:8.0-cli
 
-# Install dependencies
+# Install dependencies if needed
 RUN apt-get update && apt-get install -y libpng-dev libjpeg-dev libfreetype6-dev zip git
 
-# Install PHP extensions
+# Install PHP extensions if needed (e.g., for GD, PDO, etc.)
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg
-RUN docker-php-ext-install gd
+RUN docker-php-ext-install gd pdo pdo_mysql
 
-# Install Composer (if you're using it)
+# Install Composer for PHP dependencies if you use it
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Set working directory
-WORKDIR /var/www
+# Set the working directory to the root of your project
+WORKDIR /var/www/html
 
-# Copy your PHP code into the container
+# Copy the entire project into the Docker container
 COPY . .
 
-# Install dependencies (if you have any)
-RUN composer install
-
-# Expose port and run PHP built-in server (you can adjust the command if you use a different server)
+# Expose port 80 (the standard port for HTTP)
 EXPOSE 80
-CMD ["php", "-S", "0.0.0.0:80", "-t", "public"]
+
+# Run PHP built-in server to serve static files and handle PHP requests
+CMD ["php", "-S", "0.0.0.0:80", "-t", "."]
