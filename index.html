@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>OTP Registration</title>
+        <script>
+            function sendOTP() {
+                const email = document.getElementById("email").value;
+
+                // Check if email is provided
+                if (!email) {
+                    alert("Please provide an email.");
+                    return;
+                }
+
+                // Send the email to the server
+                fetch("send_otp.php", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                    body: `email=${encodeURIComponent(email)}`,
+                })
+                    .then((response) => response.text())
+                    .then((data) => {
+                        console.log(data); // Handle the response (OTP sent or error)
+                        alert(data); // For the user to see if OTP was sent
+                    })
+                    .catch((error) => {
+                        console.error("Error:", error);
+                    });
+            }
+        </script>
+    </head>
+    <body>
+        <h1>Sign up to Support the Cause</h1>
+        <form id="otpForm" onsubmit="event.preventDefault(); sendOTP();">
+            <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="Enter your email"
+                required
+            />
+            <button type="submit">Send OTP</button>
+        </form>
+    </body>
+</html>
