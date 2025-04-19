@@ -1,96 +1,102 @@
 <?php
+require_once "vendor/autoload.php";
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
 session_start();
-require_once "../config/db.php";
 
-// Check if accessing directly or through AJAX
-$is_ajax =
-    !empty($_SERVER["HTTP_X_REQUESTED_WITH"]) &&
-    strtolower($_SERVER["HTTP_X_REQUESTED_WITH"]) == "xmlhttprequest";
+$host = $_ENV["DB_HOST"];
+$port = $_ENV["DB_PORT"] ?? 3306;
+$dbname = $_ENV["DB_NAME"];
+$user = $_ENV["DB_USER"];
+$pass = $_ENV["DB_PASS"];
 
-// Get form data from POST or JSON
-if ($is_ajax) {
-    header("Content-Type: application/json");
-    $json_data = file_get_contents("php://input");
-    $data = json_decode($json_data, true);
-    $entered_otp = $data["otp"] ?? "";
-} else {
-    $entered_otp = $_POST["otp"] ?? "";
-}
-
-// Check if OTP session exists
-if (!isset($_SESSION["otp"]) || !isset($_SESSION["form_data"])) {
-    if ($is_ajax) {
-        echo json_encode([
-            "status" => "error",
-            "message" => "Session expired or invalid. Please try again.",
-        ]);
-    } else {
-        echo "<p>Session expired or invalid. <a href='index.html'>Please try again</a>.</p>";
-    }
+try {
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname";
+    $pdo = new PDO($dsn, $user, $pass);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    echo json_encode([
+        "status" => "error",
+        "message" => "DB Connection failed: " . $e->getMessage(),
+    ]);
     exit();
 }
 
-// Verify OTP
-if ($entered_otp == $_SESSION["otp"]) {
-    // Extract user data from session
-    $userData = $_SESSION["form_data"];
+// Get input from the frontend
+$data = json_decode(file_get_contents("php://input"), true);
 
-    // Connect to database
-    $conn = getDbConnection(); // Assuming this function is defined in db.php
+// Log the received data for debugging
+file_put_contents("debug.log", print_r($data, true), FILE_APPEND);
 
-    // Prepare and execute SQL statement
-    $stmt = $conn->prepare(
-        "INSERT INTO users (name, age, phone, email, supports_cause) VALUES (?, ?, ?, ?, ?)"
-    );
-    $stmt->bind_param(
-        "sissi",
-        $userData["name"],
-        $userData["age"],
-        $userData["phno"],
-        $userData["email"],
-        $userData["support"]
-    );
-
-    $success = $stmt->execute();
-    $stmt->close();
-    $conn->close();
-
-    // Clear the session data
-    unset($_SESSION["otp"], $_SESSION["form_data"]);
-
-    if ($success) {
-        if ($is_ajax) {
-            echo json_encode([
-                "status" => "success",
-                "message" =>
-                    "OTP verified successfully! Thank you for registering.",
-            ]);
-        } else {
-            echo "<p>OTP verified successfully! Thank you for registering.</p>";
-            echo "<p><a href='index.html'>Back to home</a></p>";
-        }
-    } else {
-        if ($is_ajax) {
-            echo json_encode([
-                "status" => "error",
-                "message" => "Error saving your information. Please try again.",
-            ]);
-        } else {
-            echo "<p>Error saving your information. <a href='index.html'>Please try again</a>.</p>";
-        }
-    }
-} else {
-    if ($is_ajax) {
+// Validate required fields
+$required_fields = ["name", "age", "phno", "email", "support", "otp"];
+foreach ($required_fields as $field) {
+    if (!isset($data[$field]) || empty($data[$field])) {
         echo json_encode([
             "status" => "error",
-            "message" => "Invalid OTP. Please try again.",
+            "message" => "Missing required fields.",
         ]);
-    } else {
-        echo "<p>Invalid OTP. Please try again.</p>";
-        echo '<form method="POST" action="verify.php">
-                <input type="text" name="otp" placeholder="Enter OTP" required />
-                <button type="submit">Verify OTP</button>
-              </form>';
+        exit();
     }
+}
+
+$name = $data["name"];
+$age = $data["age"];
+$phno = $data["phno"];
+$email = $data["email"];
+$support = $data["support"];
+$submitted_otp = trim((string) $data["otp"]); // Trim and cast to string
+
+// Validate OTP
+if (!isset($_SESSION["otp"])) {
+    file_put_contents("debug.log", "Session OTP not set.\n", FILE_APPEND);
+    echo json_encode([
+        "status" => "error",
+        "message" => "No OTP found in session.",
+    ]);
+    exit();
+}
+
+$stored_otp = trim((string) $_SESSION["otp"]); // Trim and cast to string
+
+// Log the stored and submitted OTP for debugging
+file_put_contents(
+    "debug.log",
+    "Stored OTP: " . $stored_otp . "\n",
+    FILE_APPEND
+);
+file_put_contents(
+    "debug.log",
+    "Submitted OTP: " . $submitted_otp . "\n",
+    FILE_APPEND
+);
+
+if ($submitted_otp !== $stored_otp) {
+    echo json_encode(["status" => "error", "message" => "Invalid OTP"]);
+    exit();
+}
+
+// OTP is correct, proceed with the registration
+
+try {
+    // Save user data in the database
+    $stmt = $pdo->prepare(
+        "INSERT INTO registrations (name, age, phone, email, support) VALUES (?, ?, ?, ?, ?)"
+    );
+    $stmt->execute([$name, $age, $phno, $email, $support]);
+
+    // Clear OTP from session after successful verification
+    unset($_SESSION["otp"]);
+
+    echo json_encode([
+        "status" => "success",
+        "message" => "Registration successful!",
+    ]);
+} catch (PDOException $e) {
+    echo json_encode([
+        "status" => "error",
+        "message" => "Database error: " . $e->getMessage(),
+    ]);
 }
 ?>
