@@ -46,13 +46,13 @@ function setupDatabase()
 
     $conn->select_db($database);
 
-    $sql = "CREATE TABLE IF NOT EXISTS users (
+    $sql = "CREATE TABLE IF NOT EXISTS registrations (
         id INT(11) AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         age INT(3) NOT NULL,
         phone VARCHAR(20) NOT NULL,
         email VARCHAR(255) NOT NULL,
-        supports_cause TINYINT(1) NOT NULL DEFAULT 0,
+        support TINYINT(1) NOT NULL DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )";
 
