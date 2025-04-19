@@ -16,7 +16,7 @@ WORKDIR /var/www/html
 
 # Copy the entire project into the Docker container
 COPY . .
-
+RUN composer install --no-dev --optimize-autoloader
 # Expose port 80 (the standard port for HTTP)
 EXPOSE 80
 
