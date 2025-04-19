@@ -4,7 +4,6 @@
  */
 require_once __DIR__ . "/../vendor/autoload.php"; // Adjusted path
 
-// Check if the file exists before trying to load it
 $envPath = __DIR__ . "/../.env";
 if (!file_exists($envPath)) {
     die("Error: The .env file does not exist at the path: $envPath");
@@ -12,15 +11,11 @@ if (!file_exists($envPath)) {
 Dotenv\Dotenv::createImmutable(__DIR__ . "/../")->load();
 function getDbConnection()
 {
-    // Get environment variables
     $host = $_ENV["DB_HOST"] ?? "localhost";
     $username = $_ENV["DB_USERNAME"] ?? "root";
     $password = $_ENV["DB_PASSWORD"] ?? "";
-    $database = $_ENV["DB_DATABASE"] ?? "cause_registration";
-
-    // Create connection
+    $database = $_ENV["DB_DATABASE"] ?? "registrations";
     $conn = new mysqli($host, $username, $password, $database);
-
     // Check connection
     if ($conn->connect_error) {
         die("Connection failed: " . $conn->connect_error);
@@ -29,24 +24,18 @@ function getDbConnection()
     return $conn;
 }
 
-// If you need to create the database and tables, you can run this once
 function setupDatabase()
 {
     $host = $_ENV["DB_HOST"] ?? "localhost";
     $username = $_ENV["DB_USERNAME"] ?? "root";
     $password = $_ENV["DB_PASSWORD"] ?? "";
     $database = $_ENV["DB_DATABASE"] ?? "cause_registration";
-
-    // Connect without database selection
     $conn = new mysqli($host, $username, $password);
-
-    // Create database if it doesn't exist
     $sql = "CREATE DATABASE IF NOT EXISTS $database";
     if ($conn->query($sql) !== true) {
         die("Error creating database: " . $conn->error);
     }
 
-    // Select the database
     $conn->select_db($database);
 
     // Create users table
