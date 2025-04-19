@@ -1,71 +1,76 @@
 <?php
-require_once "vendor/autoload.php"; // Composer autoloader
+require_once "vendor/autoload.php";
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load(); // This loads environment variables
 
-use Dotenv\Dotenv;
+session_start(); // Start the session
 
-// Load environment variables safely
-$dotenv = Dotenv::createImmutable(__DIR__);
-$dotenv->load();
+header("Content-Type: application/json"); // Ensure JSON response
 
-// Check for POST request
-if (
-    isset($_SERVER["REQUEST_METHOD"]) &&
-    $_SERVER["REQUEST_METHOD"] === "POST"
-) {
-    $email = $_POST["email"] ?? "";
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $data = json_decode(file_get_contents("php://input"), true);
 
-    if (empty($email)) {
-        echo "Error: Missing email.";
+    // Validate the email address
+    if (empty($data["email"])) {
+        echo json_encode([
+            "status" => "error",
+            "message" => "Email address is required.",
+        ]);
         exit();
     }
 
-    $otp = rand(100000, 999999); // Generate OTP
+    $email = $data["email"];
 
-    // Check if all SMTP vars are loaded
-    $required_env_vars = [
-        "SMTP_HOST",
-        "SMTP_PORT",
-        "SMTP_USER",
-        "SMTP_PASS",
-        "SMTP_FROM_NAME",
-        "SMTP_FROM_EMAIL",
-    ];
-    foreach ($required_env_vars as $var) {
-        if (empty($_ENV[$var])) {
-            echo "Error: Missing SMTP configuration for $var.";
-            exit();
-        }
+    // Validate email format
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        echo json_encode([
+            "status" => "error",
+            "message" => "Invalid email address format.",
+        ]);
+        exit();
     }
 
+    // Generate OTP
+    $otp = rand(100000, 999999);
+
+    // Store OTP in session for later validation
+    $_SESSION["otp"] = $otp;
+
     try {
-        // Set up SwiftMailer transport
+        // SMTP configuration
         $transport = (new Swift_SmtpTransport(
             $_ENV["SMTP_HOST"],
-            (int) $_ENV["SMTP_PORT"]
+            $_ENV["SMTP_PORT"]
         ))
             ->setUsername($_ENV["SMTP_USER"])
             ->setPassword($_ENV["SMTP_PASS"])
             ->setEncryption("ssl");
-
         $mailer = new Swift_Mailer($transport);
 
-        // Create and send message
+        // Create message
         $message = (new Swift_Message("Your OTP Code"))
             ->setFrom([$_ENV["SMTP_FROM_EMAIL"] => $_ENV["SMTP_FROM_NAME"]])
-            ->setTo([$email])
+            ->setTo([$email]) // Send OTP to the email address
             ->setBody("Your OTP code is: $otp");
 
-        $result = $mailer->send($message);
+        // Send the message
+        $mailer->send($message);
 
-        if ($result) {
-            echo "OTP sent to $email.";
-        } else {
-            echo "Failed to send OTP.";
-        }
+        echo json_encode([
+            "status" => "success",
+            "message" =>
+                "OTP sent successfully to your email! Please check your spam as well.",
+        ]);
     } catch (Exception $e) {
-        echo "Mailer Error: " . $e->getMessage();
+        echo json_encode([
+            "status" => "error",
+            "message" => "Mailer Error: " . $e->getMessage(),
+        ]);
     }
 } else {
-    echo "This endpoint only accepts POST requests.";
+    echo json_encode([
+        "status" => "error",
+        "message" => "Invalid request method.",
+    ]);
 }
 ?>
