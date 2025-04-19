@@ -1,7 +1,8 @@
 <?php
 require_once "vendor/autoload.php";
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-$dotenv->load(); // This loads environment variables
+if (file_exists(__DIR__ . "/.env")) {
+    Dotenv\Dotenv::createImmutable(__DIR__)->load();
+}
 
 session_start(); // Start the session
 
