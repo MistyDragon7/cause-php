@@ -81,6 +81,42 @@ if ($submitted_otp !== $stored_otp) {
 // OTP is correct, proceed with the registration
 
 try {
+    // Check if the phone number already exists
+    $stmt = $pdo->prepare(
+        "SELECT COUNT(*) AS count FROM registrations WHERE phone = ?"
+    );
+    $stmt->execute([$phno]);
+    $phoneExists = $stmt->fetch(PDO::FETCH_ASSOC)["count"] > 0;
+
+    // Check if the email already exists
+    $stmt = $pdo->prepare(
+        "SELECT COUNT(*) AS count FROM registrations WHERE email = ?"
+    );
+    $stmt->execute([$email]);
+    $emailExists = $stmt->fetch(PDO::FETCH_ASSOC)["count"] > 0;
+
+    // Return specific error messages
+    if ($phoneExists && $emailExists) {
+        echo json_encode([
+            "status" => "error",
+            "message" =>
+                "Both the phone number and email are already registered.",
+        ]);
+        exit();
+    } elseif ($phoneExists) {
+        echo json_encode([
+            "status" => "error",
+            "message" => "The phone number is already registered.",
+        ]);
+        exit();
+    } elseif ($emailExists) {
+        echo json_encode([
+            "status" => "error",
+            "message" => "The email is already registered.",
+        ]);
+        exit();
+    }
+
     // Save user data in the database
     $stmt = $pdo->prepare(
         "INSERT INTO registrations (name, age, phone, email, support) VALUES (?, ?, ?, ?, ?)"
