@@ -21,6 +21,7 @@
                 height: 100vh;
                 margin: 0;
                 padding: 20px;
+                overflow: hidden; /* Prevent scrollbars */
             }
 
             form {
@@ -29,17 +30,19 @@
                 border-radius: 20px;
                 box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
                 width: 380px;
-                animation: slideIn 0.5s ease forwards;
+                animation: float 5s ease-in-out infinite; /* Floating animation */
+                position: relative;
             }
 
-            @keyframes slideIn {
-                from {
-                    opacity: 0;
-                    transform: translateY(20px);
-                }
-                to {
-                    opacity: 1;
+            @keyframes float {
+                0% {
                     transform: translateY(0);
+                }
+                50% {
+                    transform: translateY(-15px); /* Move up slightly */
+                }
+                100% {
+                    transform: translateY(0); /* Return to original position */
                 }
             }
 
@@ -381,10 +384,29 @@
                         form.reset();
                         submitButton.disabled = true;
                     } else {
-                        showMessage(
-                            data.message || "Invalid OTP. Please try again.",
-                            "error",
-                        );
+                        // Display specific error messages
+                        if (data.message.includes("phone number")) {
+                            showMessage(
+                                "The phone number is already registered.",
+                                "error",
+                            );
+                        } else if (data.message.includes("email")) {
+                            showMessage(
+                                "The email is already registered.",
+                                "error",
+                            );
+                        } else if (data.message.includes("Both")) {
+                            showMessage(
+                                "Both the phone number and email are already registered.",
+                                "error",
+                            );
+                        } else {
+                            showMessage(
+                                data.message ||
+                                    "An error occurred. Please try again.",
+                                "error",
+                            );
+                        }
                     }
                 } catch (err) {
                     showMessage(
