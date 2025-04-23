@@ -13,7 +13,7 @@ $user = $_ENV["DB_USER"];
 $pass = $_ENV["DB_PASS"];
 
 try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname";
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
     $pdo = new PDO($dsn, $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
@@ -51,6 +51,11 @@ foreach ($required_fields as $field) {
         exit();
     }
 }
+function clean_country_name($string)
+{
+    // Keep only basic Latin letters, numbers, and spaces
+    return preg_replace("/[^A-Za-z0-9 ]/", "", $string);
+}
 
 // Extract fields
 $first_name = $data["first_name"];
@@ -61,7 +66,7 @@ $phno = $data["phno"];
 $email = $data["email"];
 $support = $data["support"];
 $city = $data["city"];
-$country = $data["country"];
+$country = clean_country_name($data["country"]);
 $submitted_otp = trim((string) $data["otp"]);
 
 // Validate OTP
@@ -134,8 +139,8 @@ try {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
     );
     $stmt->execute([
-        $firstName,
-        $lastName,
+        $first_name,
+        $last_name,
         $age,
         $phno,
         $email,
