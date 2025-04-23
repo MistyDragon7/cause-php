@@ -11,6 +11,12 @@
             href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/css/intlTelInput.min.css"
         />
 
+        <!-- country-select-js CSS -->
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/country-select-js@2.0.1/build/css/countrySelect.min.css"
+        />
+
         <style>
             body {
                 font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -18,18 +24,23 @@
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                height: 100vh;
+                min-height: 100vh;
                 margin: 0;
                 padding: 20px;
-                overflow: hidden; /* Prevent scrollbars */
+                overflow-x: hidden;
+                overflow-y: auto;
             }
-
+            p {
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
             form {
                 background: white;
                 padding: 35px;
                 border-radius: 20px;
                 box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
-                width: 380px;
+                max-width: 100%;
+                width: 500px;
                 animation: float 5s ease-in-out infinite; /* Floating animation */
                 position: relative;
             }
@@ -39,7 +50,7 @@
                     transform: translateY(0);
                 }
                 50% {
-                    transform: translateY(-15px); /* Move up slightly */
+                    transform: translateY(0px); /* Move up slightly */
                 }
                 100% {
                     transform: translateY(0); /* Return to original position */
@@ -69,6 +80,17 @@
                 margin-bottom: 20px;
             }
 
+            .input-row {
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+
+            .input-row .input-group {
+                flex: 1;
+                min-width: 45%;
+            }
+
             input[type="text"],
             input[type="number"],
             input[type="email"],
@@ -80,6 +102,10 @@
                 font-size: 15px;
                 transition: all 0.3s ease;
                 box-sizing: border-box;
+            }
+
+            .country-select {
+                width: 100% !important;
             }
 
             input:focus {
@@ -103,7 +129,23 @@
                 height: 18px;
                 accent-color: #764ba2;
             }
+            .iti {
+                width: 100%; /* or set a fixed width like 300px */
+            }
 
+            /* .iti__flag-container {
+                width: 60px; /* narrower flag + dropdown */
+            } */
+
+            /* .iti__selected-flag {
+                padding: 0 6px;
+            } */
+
+            .iti__country-list {
+                max-height: 200px;
+                overflow-y: auto;
+                z-index: 1000;
+            }
             button {
                 width: 100%;
                 padding: 14px;
@@ -182,10 +224,37 @@
 
     <body>
         <form id="registration-form">
-            <h2>Support the Cause</h2>
+            <h2>Petition and Plea for ONE DMS on 30th, 31st and 1st January</h2>
+            <p>
+                Dear Sir/Madam, This below, is my Guru’s direct and sacred
+                instruction to us: "They (the leadership of Ananda Margiis) will
+                have to keep specially strict vigilance on unity and order. Do
+                not allow distinctions to crop up among Ánanda Márgiis. Unity
+                should be maintained even at the risk to one’s life. Do not
+                under any circumstances allow individual interest to stand in
+                the way of collective interest."<br />Thus I, the undersigned,
+                respectfully request that my Guru’s instruction be followed, and
+                permission be given for the holding of only one DMS on the above
+                dates, where any Ananda Margii is welcome to attend.
+            </p>
 
-            <div class="input-group">
-                <input type="text" name="name" placeholder="Name" required />
+            <div class="input-row">
+                <div class="input-group">
+                    <input
+                        type="text"
+                        name="first_name"
+                        placeholder="First Name"
+                        required
+                    />
+                </div>
+                <div class="input-group">
+                    <input
+                        type="text"
+                        name="last_name"
+                        placeholder="Last Name"
+                        required
+                    />
+                </div>
             </div>
 
             <div class="input-group">
@@ -193,6 +262,20 @@
                 <div id="age-error" class="age-error">
                     You must be at least 13 years old to register.
                 </div>
+            </div>
+
+            <div class="input-group">
+                <input type="text" name="city" placeholder="City" required />
+            </div>
+
+            <div class="input-group">
+                <input
+                    type="text"
+                    id="country"
+                    name="country"
+                    placeholder="Select Country"
+                    required
+                />
             </div>
 
             <div class="input-group">
@@ -244,8 +327,11 @@
             </button>
         </form>
 
-        <!-- intl-tel-input JS -->
+        <!-- JS Scripts -->
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/intlTelInput.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/country-select-js@2.0.1/build/js/countrySelect.min.js"></script>
+
         <script>
             const phoneInput = document.querySelector("#phno");
             const emailInput = document.querySelector("#email");
@@ -264,7 +350,12 @@
                     "https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/utils.js",
             });
 
-            // Validate phone number
+            // Init country select
+            $("#country").countrySelect({
+                preferredCountries: ["in", "us", "gb"],
+                defaultCountry: "in",
+            });
+
             function validatePhone() {
                 const isValid = iti.isValidNumber();
                 phoneError.style.display =
@@ -320,8 +411,7 @@
             }
 
             async function sendOTP() {
-                const email = document.getElementById("email").value; // Get the email address
-
+                const email = document.getElementById("email").value;
                 if (!email) {
                     showMessage("Please enter a valid email address.", "error");
                     return;
@@ -331,7 +421,7 @@
                     const response = await fetch("send_otp.php", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email }), // Send the email field to the backend
+                        body: JSON.stringify({ email }),
                     });
 
                     const data = await response.json();
@@ -354,13 +444,18 @@
             async function submitForm() {
                 const form = document.getElementById("registration-form");
                 const formData = {
-                    name: form.querySelector('input[name="name"]').value,
+                    first_name: form.querySelector('input[name="first_name"]')
+                        .value,
+                    last_name: form.querySelector('input[name="last_name"]')
+                        .value,
                     age: form.querySelector('input[name="age"]').value,
+                    city: form.querySelector('input[name="city"]').value,
+                    country: form.querySelector('input[name="country"]').value,
                     phno: iti.getNumber(),
                     email: form.querySelector('input[name="email"]').value,
                     support: form.querySelector('input[name="support"]')
                         .checked,
-                    otp: document.getElementById("otp").value, // Ensure OTP is included
+                    otp: document.getElementById("otp").value,
                 };
 
                 if (!formData.otp) {
@@ -375,7 +470,7 @@
                     const response = await fetch("verify.php", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(formData), // Sending all the necessary data
+                        body: JSON.stringify(formData),
                     });
 
                     const data = await response.json();
@@ -384,7 +479,6 @@
                         form.reset();
                         submitButton.disabled = true;
                     } else {
-                        // Display specific error messages
                         if (data.message.includes("phone number")) {
                             showMessage(
                                 "The phone number is already registered.",
